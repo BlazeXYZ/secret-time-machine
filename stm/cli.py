@@ -94,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
 
     json_to_stdout = args.json == "-"
     out = sys.stderr if json_to_stdout else sys.stdout
-    paint = Painter(not args.no_color and out.isatty() and "NO_COLOR" not in os.environ)
+    paint = Painter(not args.no_color and (out.isatty() or bool(os.environ.get("FORCE_COLOR"))) and "NO_COLOR" not in os.environ)
     progress = None
     if sys.stderr.isatty():
         def progress(n: int) -> None:
