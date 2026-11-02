@@ -1,0 +1,12 @@
+# README demo. Render from the repo root (it builds demo-repo/; delete it afterwards):
+#   termreel render docs/demo.reel -o docs/demo.svg
+@cwd ..
+@size 116x40
+@title Secret Time Machine
+@prompt [bold #db94ed]~/secret-time-machine[/] [#ee15ee]❯[/]
+@typing 24
+$ python examples/make_demo_repo.py demo-repo
+@sleep 1
+@clear
+$ python -m stm demo-repo
+@sleep 4

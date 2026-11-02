@@ -79,26 +79,8 @@ stm demo-repo --html report.html --open
 
 This builds a small "acme-shop" repo with 18 months of backdated commits by five authors. The "secrets" are random strings generated at run time.
 
-```
-$ stm . --html report.html
-
-Secret Time Machine · acme-shop
-Scanned 13 commits across 3 refs by 5 authors.
-
-  LIVE       critical Stripe live key  sk_live_Ty…63
-             billing.py:3
-             added 2025-12-14 by Dana Kowalski in 2f1c9a0e · exposed 11 months · pushed
-
-  OTHER REF  critical OpenAI API key  sk-proj-NP…yj
-             search.py:3
-             added 2026-05-26 by Eve Laurent in 71c77ad0, still on experiment/ai-search · exposed 5 months
-
-  IN HISTORY high     AWS access key ID  AKIA…0E
-             config.py:5
-             added 2025-05-17 by Bob Okafor in 60c18160, removed in 7dc4a25c · exposed 23 days · pushed
-
-8 secrets: 3 live in HEAD, 1 on other refs, 4 deleted but recoverable from history.
-```
+<p align="center"><img src="docs/demo.svg" alt="Animated terminal: Secret Time Machine builds the demo repo, then lists 8 secrets: 3 live in HEAD, 1 on another branch and 4 deleted but recoverable from history" width="820"></p>
+<p align="center"><sub>Recorded with <a href="https://github.com/BlazeXYZ/termreel">termreel</a> from <a href="docs/demo.reel"><code>docs/demo.reel</code></a>.</sub></p>
 
 Five of the stories in that history:
 
