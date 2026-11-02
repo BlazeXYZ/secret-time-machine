@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secret-time-machine"
+version = "1.0.0"
+description = "Find secrets anywhere in a git repo's history and see how long each one was exposed."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["security", "git", "secrets", "devsecops", "scanner"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+  "Topic :: Software Development :: Version Control :: Git",
+]
+
+[project.scripts]
+stm = "stm.cli:main"
+
+[tool.setuptools]
+packages = ["stm"]
+
+[tool.setuptools.package-data]
+stm = ["report_template.html"]

@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secret Time Machine</title>
+<style>
+:root {
+  --bg: #f6f5f2; --surface: #ffffff; --surface-2: #f0eee9; --border: #e2dfd8;
+  --text: #1d1c1a; --muted: #6c6962; --faint: #a3a09a; --accent: #3554d1;
+  --live: #cf3a2b; --live-soft: #fbe6e2;
+  --branch: #b87400; --branch-soft: #fbf0d8;
+  --removed: #56677d; --removed-soft: #e6ebf1;
+  --ok: #2c8a4c; --ok-soft: #e2f3e7;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04);
+  --mono: ui-monospace, SFMono-Regular, "Cascadia Code", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131312; --surface: #1c1c1a; --surface-2: #252522; --border: #34332f;
+    --text: #edebe6; --muted: #9c9991; --faint: #6a6862; --accent: #8aa2ff;
+    --live: #ff6f5e; --live-soft: #3b1e1a; --branch: #f2b648; --branch-soft: #352a13;
+    --removed: #9fb0c5; --removed-soft: #232a34; --ok: #63c585; --ok-soft: #17301f;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131312; --surface: #1c1c1a; --surface-2: #252522; --border: #34332f;
+  --text: #edebe6; --muted: #9c9991; --faint: #6a6862; --accent: #8aa2ff;
+  --live: #ff6f5e; --live-soft: #3b1e1a; --branch: #f2b648; --branch-soft: #352a13;
+  --removed: #9fb0c5; --removed-soft: #232a34; --ok: #63c585; --ok-soft: #17301f;
+  --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--sans); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 28px 16px 64px; }
+code, .mono { font-family: var(--mono); font-size: .9em; }
+button { font: inherit; color: inherit; }
+h1, h2, h3, h4 { margin: 0; line-height: 1.25; }
+
+/* header */
+.top { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; }
+.eyebrow { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.eyebrow svg { width: 16px; height: 16px; }
+h1 { font-size: 28px; margin-top: 6px; word-break: break-word; }
+.meta { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+.headline { margin-top: 12px; font-size: 16px; max-width: 70ch; }
+.headline b.l { color: var(--live); } .headline b.b { color: var(--branch); } .headline b.r { color: var(--removed); }
+.icon-btn { flex: none; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; width: 36px; height: 36px; cursor: pointer; display: grid; place-items: center; }
+.icon-btn svg { width: 18px; height: 18px; }
+
+/* stats */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .k { font-size: 12.5px; color: var(--muted); }
+.stat .v { font-size: 28px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.stat .s { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.stat.live .v { color: var(--live); } .stat.removed .v { color: var(--removed); }
+
+/* panel */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 18px; }
+.panel-head { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; padding: 16px 18px 0; }
+.panel-head h2 { font-size: 17px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 8px; border-radius: 4px; display: inline-block; }
+.sw.live { background: var(--live); } .sw.branch { background: var(--branch); } .sw.removed { background: var(--removed); }
+.mk { width: 9px; height: 9px; border-radius: 50%; display: inline-block; border: 2px solid var(--text); }
+.mk.add { background: var(--text); } .mk.rem { background: var(--surface); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.search { flex: 1 1 220px; min-width: 0; border: 1px solid var(--border); background: var(--bg); border-radius: 8px; padding: 8px 10px; font: inherit; color: var(--text); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--border); background: var(--bg); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+.chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.chip .n { opacity: .65; margin-left: 4px; font-variant-numeric: tabular-nums; }
+select { border: 1px solid var(--border); background: var(--bg); border-radius: 8px; padding: 7px 8px; font: inherit; font-size: 13px; color: var(--text); }
+
+/* timeline */
+.grid { display: grid; grid-template-columns: minmax(200px, 30%) minmax(0, 1fr); column-gap: 16px; align-items: center; }
+.axis { padding: 10px 18px 4px; position: sticky; top: 0; background: var(--surface); z-index: 2; border-radius: 14px 14px 0 0; }
+.axis-track { position: relative; height: 20px; }
+.tick-label { position: absolute; transform: translateX(-50%); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.tick-label.now { color: var(--text); font-weight: 600; }
+.row { border-top: 1px solid var(--border); }
+.row:first-child { border-top: 0; }
+.row-main { padding: 10px 18px; cursor: pointer; outline: none; }
+.row-main:hover, .row-main:focus-visible { background: var(--surface-2); }
+.row-main:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.lbl { min-width: 0; }
+.l1 { display: flex; gap: 8px; align-items: center; font-weight: 600; font-size: 14px; }
+.l1 .rule { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.l2 { color: var(--text); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.l3 { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chev { margin-left: auto; color: var(--faint); transition: transform .15s; flex: none; }
+.row.open .chev { transform: rotate(90deg); }
+.sev { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 6px; border-radius: 4px; font-weight: 700; flex: none; }
+.sev-critical { background: var(--live); color: #fff; }
+.sev-high { background: var(--live-soft); color: var(--live); }
+.sev-medium { background: var(--branch-soft); color: var(--branch); }
+.sev-low { background: var(--surface-2); color: var(--muted); }
+
+.track { position: relative; height: 34px; }
+.gl { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.bar { position: absolute; top: 12px; height: 10px; border-radius: 5px; min-width: 6px; }
+.s-live .bar { background: var(--live); }
+.s-branch .bar { background: var(--branch); }
+.s-removed .bar { background: var(--removed); opacity: .85; }
+.s-live .bar::after, .s-branch .bar::after { content: ""; position: absolute; right: -3px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: inherit; animation: pulse 1.8s ease-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 55%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+@media (prefers-reduced-motion: reduce) { .bar::after { animation: none !important; } }
+.ghost { position: absolute; top: 16px; height: 2px; background: repeating-linear-gradient(90deg, var(--removed) 0 4px, transparent 4px 8px); opacity: .55; }
+.m { position: absolute; top: 17px; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; border: 2px solid var(--text); background: var(--text); z-index: 1; }
+.m.rem { background: var(--surface); }
+
+/* detail */
+.detail { padding: 4px 18px 20px; background: var(--surface-2); border-top: 1px dashed var(--border); }
+.detail-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; padding-top: 14px; }
+.detail h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 10px; }
+.status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; }
+.status-pill.live { background: var(--live-soft); color: var(--live); }
+.status-pill.branch { background: var(--branch-soft); color: var(--branch); }
+.status-pill.removed { background: var(--removed-soft); color: var(--removed); }
+.events { list-style: none; margin: 0; padding: 0; position: relative; }
+.events::before { content: ""; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
+.ev { position: relative; padding: 0 0 14px 24px; }
+.ev::before { content: ""; position: absolute; left: 0; top: 5px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--text); background: var(--text); }
+.ev.removed::before { background: var(--surface-2); }
+.ev.now::before { border-color: var(--live); background: var(--live); }
+.ev-top { font-size: 13.5px; }
+.ev-top b.added { color: var(--live); } .ev-top b.removed { color: var(--ok); }
+.ev-sub { font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
+.ev-meta { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.steps { margin: 0; padding-left: 20px; font-size: 13.5px; }
+.steps li { margin-bottom: 10px; }
+.cmd { position: relative; margin-top: 6px; }
+.cmd pre { margin: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; padding-right: 64px; font: 12.5px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.copy { position: absolute; top: 6px; right: 6px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; font-size: 12px; padding: 3px 8px; cursor: pointer; }
+.refs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.ref { font: 12px var(--mono); padding: 2px 8px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); }
+.note { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+.empty { padding: 48px 18px; text-align: center; color: var(--muted); }
+.empty .big { font-size: 20px; color: var(--ok); font-weight: 650; margin-bottom: 6px; }
+
+/* explainer */
+.explain { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 16px 18px 20px; }
+.explain h3 { font-size: 14.5px; margin-bottom: 4px; }
+.explain p { margin: 0; font-size: 13.5px; color: var(--muted); }
+footer { color: var(--faint); font-size: 12.5px; text-align: center; margin-top: 28px; }
+
+.tip { position: fixed; pointer-events: none; z-index: 10; background: var(--text); color: var(--bg); font-size: 12.5px; padding: 6px 9px; border-radius: 6px; max-width: 280px; opacity: 0; transition: opacity .1s; }
+.tip.on { opacity: 1; }
+
+@media (max-width: 760px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid { grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+  .axis .grid > :first-child { display: none; }
+  .detail-grid, .explain { grid-template-columns: minmax(0, 1fr); }
+  h1 { font-size: 23px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
+        Secret Time Machine
+      </div>
+      <h1 id="repo"></h1>
+      <div class="meta" id="meta"></div>
+      <p class="headline" id="headline"></p>
+    </div>
+    <button class="icon-btn" id="theme" type="button" aria-label="Toggle light or dark theme">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+  </header>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Exposure timeline</h2>
+      <div class="legend">
+        <span><i class="sw live"></i>Live in HEAD</span>
+        <span><i class="sw branch"></i>Live on another ref</span>
+        <span><i class="sw removed"></i>Removed (still in history)</span>
+        <span><i class="mk add"></i>Added</span>
+        <span><i class="mk rem"></i>Removed</span>
+      </div>
+    </div>
+    <div class="controls">
+      <input class="search" id="q" type="search" placeholder="Filter by file, rule, author, commit…" aria-label="Filter findings">
+      <div class="chips" id="chips"></div>
+      <select id="sev" aria-label="Severity"><option value="all">All severities</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+      <select id="sort" aria-label="Sort"><option value="urgent">Most urgent</option><option value="longest">Longest exposed</option><option value="newest">Newest</option><option value="oldest">Oldest</option></select>
+    </div>
+    <div class="axis"><div class="grid"><div></div><div class="axis-track" id="axis"></div></div></div>
+    <div id="rows"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Why "I deleted it" isn't enough</h2></div>
+    <div class="explain">
+      <div><h3>History is forever</h3><p>Deleting a line only adds a new commit. The old commit still has the secret, and <code>git show &lt;sha&gt;</code> brings it back for anyone with a clone.</p></div>
+      <div><h3>Pushed means public</h3><p>Once a commit reaches a remote, forks, CI caches and mirrors may keep a copy. Bots scan public pushes within minutes.</p></div>
+      <div><h3>Rotate first, rewrite second</h3><p>Revoking the credential is the real fix. Rewriting history with <code>git filter-repo</code> just keeps the old value from spreading further.</p></div>
+    </div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script id="stm-data" type="application/json">__STM_DATA__</script>
+<script>
+(function () {
+  "use strict";
+  var D = JSON.parse(document.getElementById("stm-data").textContent);
+  var F = D.findings || [];
+  var SEV = ["critical", "high", "medium", "low"];
+  var STATUS = {
+    live: { label: "Live in HEAD", chip: "Live" },
+    branch: { label: "Live on another ref", chip: "Other refs" },
+    removed: { label: "Removed, still in history", chip: "In history" }
+  };
+  var state = { status: "all", sev: "all", q: "", sort: "urgent", open: {} };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function date(ts) { return new Date(ts * 1000).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); }
+  function dur(sec) {
+    var h = sec / 3600, d = h / 24;
+    if (h < 1) return Math.max(1, Math.round(sec / 60)) + " min";
+    if (d < 2) return Math.round(h) + " hours";
+    if (d < 90) return Math.round(d) + " days";
+    if (d < 730) return Math.round(d / 30.44) + " months";
+    return (d / 365.25).toFixed(1) + " years";
+  }
+  function plural(n, w) { return n + " " + w + (n === 1 ? "" : "s"); }
+  function num(n) { return Number(n).toLocaleString(); }
+
+  /* theme */
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem("stm-theme"); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
+  $("theme").addEventListener("click", function () {
+    var cur = root.getAttribute("data-theme") ||
+      (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    var next = cur === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("stm-theme", next); } catch (e) {}
+  });
+
+  /* header + stats */
+  var counts = { live: 0, branch: 0, removed: 0 };
+  F.forEach(function (f) { counts[f.status]++; });
+  var files = {};
+  F.forEach(function (f) { f.files.forEach(function (p) { files[p] = 1; }); });
+  var longest = F.reduce(function (a, f) { return !a || f.exposure_seconds > a.exposure_seconds ? f : a; }, null);
+
+  document.title = "Secret Time Machine · " + D.repo;
+  $("repo").textContent = D.repo;
+  $("meta").textContent = num(D.commit_count) + " commits · " + plural(D.author_count, "author") + " · " +
+    plural(D.ref_count, "ref") + " · scanned " + new Date(D.scanned_at * 1000).toLocaleString();
+
+  var hl = [];
+  if (!F.length) hl.push("No secrets found anywhere in this repository's history.");
+  else {
+    if (counts.live) hl.push('<b class="l">' + plural(counts.live, "secret") + (counts.live === 1 ? " is" : " are") + " live in HEAD</b> right now.");
+    if (counts.branch) hl.push('<b class="b">' + counts.branch + "</b> more " + (counts.branch === 1 ? "is" : "are") + " still on other branches or tags.");
+    if (counts.removed) hl.push('<b class="r">' + counts.removed + "</b> " + (counts.removed === 1 ? "was" : "were") + " deleted but can still be recovered from history.");
+  }
+  $("headline").innerHTML = hl.join(" ");
+
+  var stats = [
+    { k: "Secrets found", v: F.length, s: "across " + plural(Object.keys(files).length, "file") },
+    { k: "Live in HEAD", v: counts.live, s: counts.branch ? "+" + counts.branch + " on other refs" : "in the current checkout", c: "live" },
+    { k: "Deleted, not gone", v: counts.removed, s: "recoverable from any clone", c: "removed" },
+    { k: "Longest exposure", v: longest ? dur(longest.exposure_seconds) : "–", s: longest ? longest.rule : "nothing exposed" }
+  ];
+  $("stats").innerHTML = stats.map(function (x) {
+    return '<div class="stat ' + (x.c || "") + '"><div class="k">' + esc(x.k) + '</div><div class="v">' + esc(x.v) +
+      '</div><div class="s">' + esc(x.s) + "</div></div>";
+  }).join("");
+  $("foot").textContent = "Generated by Secret Time Machine. Secret values are masked; this report never contains them in full.";
+
+  /* status chips */
+  function renderChips() {
+    var opts = [["all", "All", F.length], ["live", STATUS.live.chip, counts.live], ["branch", STATUS.branch.chip, counts.branch], ["removed", STATUS.removed.chip, counts.removed]];
+    $("chips").innerHTML = opts.map(function (o) {
+      return '<button type="button" class="chip" data-s="' + o[0] + '" aria-pressed="' + (state.status === o[0]) + '">' +
+        esc(o[1]) + '<span class="n">' + o[2] + "</span></button>";
+    }).join("");
+  }
+  $("chips").addEventListener("click", function (e) {
+    var b = e.target.closest(".chip"); if (!b) return;
+    state.status = b.getAttribute("data-s"); renderChips(); renderRows();
+  });
+  $("q").addEventListener("input", function (e) { state.q = e.target.value.trim().toLowerCase(); renderRows(); });
+  $("sev").addEventListener("change", function (e) { state.sev = e.target.value; renderRows(); });
+  $("sort").addEventListener("change", function (e) { state.sort = e.target.value; renderRows(); });
+
+  /* time scale */
+  var t0 = Math.min(D.first_commit_ts, F.length ? Math.min.apply(null, F.map(function (f) { return f.start; })) : D.first_commit_ts);
+  var t1 = D.scanned_at;
+  var pad = Math.max((t1 - t0) * 0.02, 3600);
+  t0 -= pad;
+  var span = Math.max(t1 - t0, 1);
+  function x(ts) { return Math.min(100, Math.max(0, (ts - t0) / span * 100)); }
+
+  function ticks() {
+    var days = span / 86400, out = [], d, step;
+    if (days > 60) {
+      var months = days / 30.44;
+      step = [1, 2, 3, 6, 12, 24, 60].find(function (s) { return months / s <= 6; }) || 120;
+      d = new Date(t0 * 1000); d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      while (d.getMonth() % Math.min(step, 12) !== 0) d.setMonth(d.getMonth() + 1);
+      while (d / 1000 < t1) {
+        out.push({ ts: d / 1000, label: step >= 12 ? String(d.getFullYear()) : d.toLocaleDateString(undefined, { month: "short", year: "2-digit" }) });
+        d.setMonth(d.getMonth() + step);
+      }
+    } else {
+      step = [1, 2, 7, 14, 30].find(function (s) { return days / s <= 6; }) || 30;
+      d = new Date(t0 * 1000); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1);
+      while (d / 1000 < t1) {
+        out.push({ ts: d / 1000, label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) });
+        d.setDate(d.getDate() + step);
+      }
+    }
+    return out.filter(function (t) { return x(t.ts) < 92; });
+  }
+  var TICKS = ticks();
+  $("axis").innerHTML = TICKS.map(function (t) {
+    return '<span class="tick-label" style="left:' + x(t.ts) + '%">' + esc(t.label) + "</span>";
+  }).join("") + '<span class="tick-label now" style="left:97%">now</span>';
+  var gridlines = TICKS.map(function (t) { return '<i class="gl" style="left:' + x(t.ts) + '%"></i>'; }).join("");
+
+  /* rows */
+  function matches(f) {
+    if (state.status !== "all" && f.status !== state.status) return false;
+    if (state.sev !== "all" && f.severity !== state.sev) return false;
+    if (!state.q) return true;
+    var hay = [f.rule, f.rule_id, f.masked, f.files.join(" "), f.events.map(function (e) { return e.author + " " + e.sha + " " + e.subject; }).join(" ")].join(" ").toLowerCase();
+    return hay.indexOf(state.q) !== -1;
+  }
+  var SORTS = {
+    urgent: null,
+    longest: function (a, b) { return b.exposure_seconds - a.exposure_seconds; },
+    newest: function (a, b) { return b.start - a.start; },
+    oldest: function (a, b) { return a.start - b.start; }
+  };
+
+  function rowHTML(f) {
+    var left = x(f.start), right = x(f.end);
+    var marks = f.events.map(function (e) {
+      var tip = (e.kind === "added" ? "Added" : "Removed") + " · " + date(e.ts) + " · " + e.author + "\n" + e.short + " " + e.subject;
+      return '<i class="m ' + (e.kind === "added" ? "add" : "rem") + '" style="left:' + x(e.ts) + '%" data-tip="' + esc(tip) + '"></i>';
+    }).join("");
+    var ghost = f.status === "removed" ? '<i class="ghost" style="left:' + right + '%;width:' + (100 - right) + '%" data-tip="Gone from the working tree, but every clone can still recover it"></i>' : "";
+    var barTip = STATUS[f.status].label + " · exposed " + dur(f.exposure_seconds) + " (" + date(f.start) + " → " + (f.status === "removed" ? date(f.end) : "now") + ")";
+    var open = !!state.open[f.id];
+    return '<div class="row s-' + f.status + (open ? " open" : "") + '" data-id="' + f.id + '">' +
+      '<div class="row-main grid" role="button" tabindex="0" aria-expanded="' + open + '">' +
+        '<div class="lbl">' +
+          '<div class="l1"><span class="sev sev-' + f.severity + '">' + f.severity + '</span><span class="rule">' + esc(f.rule) + '</span>' +
+          '<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></div>' +
+          '<div class="l2 mono">' + esc(f.masked) + "</div>" +
+          '<div class="l3">' + esc(f.files[0]) + (f.files.length > 1 ? " +" + (f.files.length - 1) : "") + " · " + dur(f.exposure_seconds) + "</div>" +
+        "</div>" +
+        '<div class="track">' + gridlines + ghost +
+          '<i class="bar" style="left:' + left + "%;width:" + Math.max(right - left, 0.4) + '%" data-tip="' + esc(barTip) + '"></i>' + marks +
+        "</div>" +
+      "</div>" +
+      (open ? detailHTML(f) : "") +
+    "</div>";
+  }
+
+  function cmd(text) {
+    return '<div class="cmd"><pre>' + esc(text) + '</pre><button type="button" class="copy" data-copy="' + esc(text) + '">Copy</button></div>';
+  }
+
+  function detailHTML(f) {
+    var ev = f.events.map(function (e) {
+      return '<li class="ev ' + e.kind + '"><div class="ev-top"><b class="' + e.kind + '">' + (e.kind === "added" ? "Added" : "Removed") +
+        "</b> in <code>" + esc(e.short) + "</code> · " + date(e.ts) + '</div><div class="ev-sub">' + esc(e.subject) +
+        '</div><div class="ev-meta">' + esc(e.author) + " · <code>" + esc(e.path) + ":" + e.line + "</code></div></li>";
+    }).join("");
+    if (f.status !== "removed") {
+      ev += '<li class="ev now"><div class="ev-top"><b class="added">Still present</b> · now</div><div class="ev-meta">' +
+        (f.status === "live" ? "In the current HEAD" : "At the tip of " + esc(f.live_refs.join(", "))) + "</div></li>";
+    }
+    var path = f.files[0];
+    var purge = f.keyed_by_path
+      ? "git filter-repo --invert-paths --path " + JSON.stringify(path)
+      : "# put the full secret on one line in secrets.txt (it starts with " + f.masked.split("…")[0] + ")\ngit filter-repo --replace-text secrets.txt";
+    var steps =
+      "<li><b>Rotate it now.</b> " + esc(f.advice) + "</li>" +
+      (f.status === "live" ? "<li><b>Remove it from the code</b> and load it from an environment variable or secrets manager.</li>" : "") +
+      "<li><b>Purge it from history</b> so it stops spreading (needs <code>git-filter-repo</code>):" + cmd(purge) + "</li>" +
+      "<li><b>Force-push every branch and tag,</b> then have collaborators re-clone:" + cmd("git push origin --force --all\ngit push origin --force --tags") + "</li>";
+    var reach = f.reachable_from.length
+      ? '<div class="refs">' + f.reachable_from.slice(0, 12).map(function (r) { return '<span class="ref">' + esc(r) + "</span>"; }).join("") +
+        (f.reachable_from.length > 12 ? '<span class="ref">+' + (f.reachable_from.length - 12) + "</span>" : "") + "</div>"
+      : '<div class="note">No refs recorded.</div>';
+    var pushed = f.pushed
+      ? '<div class="note">⚠ This commit is on a remote-tracking branch, so it has very likely been pushed. Treat the secret as public.</div>'
+      : '<div class="note">Not found on any remote-tracking branch, so it may never have been pushed. Rotate it anyway.</div>';
+    return '<div class="detail"><div class="detail-grid">' +
+      "<div>" + '<span class="status-pill ' + f.status + '">' + esc(STATUS[f.status].label) + " · exposed " + dur(f.exposure_seconds) + "</span>" +
+        "<h4>History</h4><ol class=\"events\">" + ev + "</ol></div>" +
+      "<div><h4>What to do</h4><ol class=\"steps\">" + steps + "</ol>" +
+        '<h4 style="margin-top:16px">Introducing commit is reachable from</h4>' + reach + pushed + "</div>" +
+    "</div></div>";
+  }
+
+  function renderRows() {
+    var list = F.filter(matches);
+    if (SORTS[state.sort]) list = list.slice().sort(SORTS[state.sort]);
+    if (!F.length) {
+      $("rows").innerHTML = '<div class="empty"><div class="big">✓ Clean history</div>No secrets found in ' + num(D.commit_count) + " commits across " + plural(D.ref_count, "ref") + ".</div>";
+    } else if (!list.length) {
+      $("rows").innerHTML = '<div class="empty">No findings match these filters.</div>';
+    } else {
+      $("rows").innerHTML = list.map(rowHTML).join("");
+    }
+  }
+
+  function toggle(row) {
+    var id = row.getAttribute("data-id");
+    state.open[id] = !state.open[id];
+    var f = F.find(function (z) { return z.id === id; });
+    var tmp = document.createElement("div");
+    tmp.innerHTML = rowHTML(f);
+    row.replaceWith(tmp.firstChild);
+  }
+  $("rows").addEventListener("click", function (e) {
+    var c = e.target.closest(".copy");
+    if (c) {
+      var text = c.getAttribute("data-copy");
+      var done = function () { c.textContent = "Copied"; setTimeout(function () { c.textContent = "Copy"; }, 1400); };
+      try { navigator.clipboard.writeText(text).then(done, function () { c.textContent = "Select & copy"; }); } catch (err) { c.textContent = "Select & copy"; }
+      return;
+    }
+    var main = e.target.closest(".row-main");
+    if (main) toggle(main.parentNode);
+  });
+  $("rows").addEventListener("keydown", function (e) {
+    var main = e.target.closest && e.target.closest(".row-main");
+    if (main && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(main.parentNode); }
+  });
+
+  /* tooltip */
+  var tip = $("tip");
+  document.addEventListener("mousemove", function (e) {
+    var t = e.target.closest && e.target.closest("[data-tip]");
+    if (!t) { tip.classList.remove("on"); return; }
+    tip.textContent = t.getAttribute("data-tip");
+    tip.style.whiteSpace = "pre-line";
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var left = Math.min(e.clientX + 12, innerWidth - w - 8), top = e.clientY - h - 10;
+    tip.style.left = Math.max(8, left) + "px";
+    tip.style.top = (top < 8 ? e.clientY + 16 : top) + "px";
+    tip.classList.add("on");
+  });
+
+  renderChips();
+  renderRows();
+})();
+</script>
+</body>
+</html>

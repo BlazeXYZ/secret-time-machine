@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# scan output and demo repos generated locally
+report.html
+stm-report.html
+*.json
+demo-repo/
+demo-repo-origin.git/
